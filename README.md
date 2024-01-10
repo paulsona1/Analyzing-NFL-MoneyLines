@@ -3,9 +3,10 @@
 ### Table of Contents
 1. [Motivation](#Motivation)
 2. [Bayesian State Space Model](#BSSM)
-3. [Logistic Regression Model](#logit)
-4. [Data](#data)
-5. [Results](#results)
+    * [Full conditional distribution of process variance](#proc_var)
+4. [Logistic Regression Model](#logit)
+5. [Data](#data)
+6. [Results](#results)
 
 ### Motivation <a name="Motivation"></a>
 
@@ -32,6 +33,19 @@ The most popular method for drawing samples of $x_t$ is Gibbs sampling - an MCMC
 [^fn2]: Shumway and Stoffer, *Time Series Analysis and Its Applications*, Fourth Edition, p. 368
 
 **In summary**: the observed moneyline update at time $t$, $y_t$, is treated as an outcome or realization of an underlying state process, which describes the actual game result. By directly modeling that state process, $x_t$, instead of the observed process, $y_t$, I want to see if I can approximate *how* a game moneyline is updated & exploit that in a wagering strategy.
+
+#### Full conditional distribution of process variance $\sigma_w^2$, $\sigma_v^2$ <a name="proc_var"></a>
+
+State ($\sigma_w^2$) and observation ($\sigma_v^2$) variances will each rely on normal-inverse gamma conjugacy. Assuming normal likelihood for sportsbook updates and inverse gamma prior for $\sigma_w^2$ and $\sigma_v^2$,^[See for example Glickman, M. E., & Stern, H. S. (1998). A State-Space Model for National Football League Scores. Journal of the American Statistical Association, 93(441), 25–35. https://doi.org/10.2307/2669599] the posterior distribution for $\sigma_w^2$ and $\sigma_v^2$ is well known.
+
+For $\sigma_v^2$, we will assume the inverse gamma prior with mean equal to the sample variance of sportbook updates across all games in the prior week, $s_{v,\text{prev}}^2$ and scale parameter set at 70. Thus:
+$$\sigma_v^2 \sim \text{IG}\left(\alpha_v=1+\beta_v/s_{v,\text{prev}}^2,\beta_v=70\right)$$
+Implying:
+$$\sigma_v^2|y_{1:n} \sim \text{IG}\left(\frac{1}{2}\left(\alpha_v+n\right),\frac{1}{2}\left(\beta_v+\displaystyle\sum_{i=1}^n\left(x_t-y_t\right)^2\right)\right)$$
+For $\sigma_w^2$, we assume the state process entails slightly less variance. For this reason, we will use the scale parameter $\beta_w=(4/3)\times\beta_v$, but retain quality of the $\sigma_v^2$ prior being centered at $s^2_{v,\text{prev}}$:
+$$\sigma_w^2 \sim \text{IG}\left(\alpha_w=1+\beta_w/s^2_{v,\text{prev}},\beta_w=(4/3)\times\beta_v\right)$$
+Implying:
+$$\sigma_w^2|x_{0:n} \sim \text{IG}\left(\frac{1}{2}\left(\alpha_w+n\right),\frac{1}{2}\left(\beta_w+\displaystyle\sum_{i=1}^n\left(x_t-x_{t-1}\right)^2\right)\right)$$
 
 
 ### Logistic Regression Model <a name="logit"></a>
